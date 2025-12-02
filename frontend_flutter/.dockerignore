@@ -1,0 +1,25 @@
+# Build artifacts
+build/
+.dart_tool/
+.packages
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Flutter
+*.log
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Test
+coverage/
+
+# Git
+.git/
+.gitignore

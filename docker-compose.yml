@@ -1,0 +1,30 @@
+services:
+  # Frontend Flutter Web
+  frontend:
+    build:
+      context: ./frontend_flutter
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Placeholder para Backend Java (futuro)
+  # backend-java:
+  #   build:
+  #     context: ./backend-java
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     - SPRING_PROFILES_ACTIVE=docker
+
+  # Placeholder para Backend C# (futuro)
+  # backend-csharp:
+  #   build:
+  #     context: ./backend-csharp
+  #   ports:
+  #     - "5000:80"
