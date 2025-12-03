@@ -4,6 +4,7 @@ import '../state/app_state.dart';
 import '../widgets/service_card.dart';
 import '../widgets/notification_badge.dart';
 import 'enrollment_screen.dart';
+import 'urban_services_screen.dart';
 
 /// Tela Home - Painel Principal do Cidadão
 /// Ponto de entrada com acesso rápido aos principais serviços
@@ -205,7 +206,12 @@ class HomeScreen extends StatelessWidget {
             subtitle: 'Abrir solicitação',
             color: Colors.orange,
             onTap: () {
-              _showComingSoon(context, 'Serviços Urbanos');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const UrbanServicesScreen(),
+                ),
+              );
             },
           ),
           ServiceCard(
