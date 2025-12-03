@@ -5,6 +5,9 @@ import '../widgets/service_card.dart';
 import '../widgets/notification_badge.dart';
 import 'enrollment_screen.dart';
 import 'urban_services_screen.dart';
+import 'vacancies_screen.dart';
+import 'my_requests_screen.dart';
+import 'profile_screen.dart';
 
 /// Tela Home - Painel Principal do Cidadão
 /// Ponto de entrada com acesso rápido aos principais serviços
@@ -197,7 +200,12 @@ class HomeScreen extends StatelessWidget {
             subtitle: 'Ver disponibilidade',
             color: Colors.green,
             onTap: () {
-              _showComingSoon(context, 'Consulta de Vagas');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const VacanciesScreen(),
+                ),
+              );
             },
           ),
           ServiceCard(
@@ -220,7 +228,12 @@ class HomeScreen extends StatelessWidget {
             subtitle: 'Acompanhar status',
             color: Colors.purple,
             onTap: () {
-              _showComingSoon(context, 'Minhas Solicitações');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MyRequestsScreen(),
+                ),
+              );
             },
           ),
         ],
@@ -289,8 +302,29 @@ class HomeScreen extends StatelessWidget {
         ),
       ],
       onTap: (index) {
-        if (index != 0) {
-          _showComingSoon(context, 'Esta seção');
+        switch (index) {
+          case 0:
+            // Já está na home
+            break;
+          case 1:
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const MyRequestsScreen(),
+              ),
+            );
+            break;
+          case 2:
+            _showNotifications(context);
+            break;
+          case 3:
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ProfileScreen(),
+              ),
+            );
+            break;
         }
       },
     );
