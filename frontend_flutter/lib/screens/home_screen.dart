@@ -147,7 +147,7 @@ class HomeScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Matrículas 2025 Abertas!',
+                  'Matrículas 2026 Abertas!',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.amber.shade900,
@@ -155,7 +155,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Período de inscrições: 01/12 a 20/12/2024',
+                  'Período de inscrições: 01/12 a 20/12/2025',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.amber.shade800,
