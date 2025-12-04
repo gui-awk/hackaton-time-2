@@ -3,12 +3,83 @@ import '../models/enrollment.dart';
 import '../models/service_request.dart';
 import '../models/notification_item.dart';
 
+/// Modelo de perfil do cidadão
+class CitizenProfile {
+  final String name;
+  final String cpf;
+  final String cep;
+  final String address;
+  final String number;
+  final String complement;
+  final String neighborhood;
+  final String city;
+  final String state;
+  final String phone;
+  final String email;
+
+  const CitizenProfile({
+    required this.name,
+    required this.cpf,
+    required this.cep,
+    required this.address,
+    required this.number,
+    this.complement = '',
+    required this.neighborhood,
+    required this.city,
+    required this.state,
+    required this.phone,
+    required this.email,
+  });
+
+  CitizenProfile copyWith({
+    String? name,
+    String? cpf,
+    String? cep,
+    String? address,
+    String? number,
+    String? complement,
+    String? neighborhood,
+    String? city,
+    String? state,
+    String? phone,
+    String? email,
+  }) {
+    return CitizenProfile(
+      name: name ?? this.name,
+      cpf: cpf ?? this.cpf,
+      cep: cep ?? this.cep,
+      address: address ?? this.address,
+      number: number ?? this.number,
+      complement: complement ?? this.complement,
+      neighborhood: neighborhood ?? this.neighborhood,
+      city: city ?? this.city,
+      state: state ?? this.state,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+    );
+  }
+}
+
 /// Estado global da aplicação Central do Cidadão.
 /// Gerencia dados do cidadão, matrículas, solicitações e notificações.
 class AppState extends ChangeNotifier {
-  // Nome do cidadão logado (simulado para MVP)
-  final String _citizenName = 'Maria da Silva';
-  String get citizenName => _citizenName;
+  // Perfil do cidadão logado (simulado para MVP)
+  CitizenProfile _citizenProfile = const CitizenProfile(
+    name: 'Maria da Silva',
+    cpf: '123.456.789-00',
+    cep: '12345-678',
+    address: 'Rua das Flores',
+    number: '123',
+    complement: 'Apto 45',
+    neighborhood: 'Centro',
+    city: 'São Paulo',
+    state: 'SP',
+    phone: '(11) 99999-8888',
+    email: 'maria.silva@email.com',
+  );
+  
+  CitizenProfile get citizenProfile => _citizenProfile;
+  String get citizenName => _citizenProfile.name;
 
   // Lista de matrículas do cidadão
   final List<Enrollment> _enrollments = [];
@@ -74,6 +145,16 @@ class AppState extends ChangeNotifier {
     for (int i = 0; i < _notifications.length; i++) {
       _notifications[i] = _notifications[i].copyWith(isRead: true);
     }
+    notifyListeners();
+  }
+
+  /// Atualiza o perfil do cidadão
+  void updateProfile(CitizenProfile newProfile) {
+    _citizenProfile = newProfile;
+    _addNotification(
+      'Perfil Atualizado',
+      'Seus dados cadastrais foram atualizados com sucesso.',
+    );
     notifyListeners();
   }
 
