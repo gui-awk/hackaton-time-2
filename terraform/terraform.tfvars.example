@@ -1,0 +1,25 @@
+# ============================================
+# Exemplo de terraform.tfvars
+# Copie para terraform.tfvars e ajuste os valores
+# ============================================
+
+# Região AWS
+aws_region = "us-east-1"
+
+# Perfil AWS CLI (configurado em ~/.aws/credentials)
+aws_profile = "default"
+
+# Tipo da instância
+instance_type = "t2.medium"
+
+# Nome da Key Pair (deve existir na AWS)
+key_name = "sua-key-pair-aqui"
+
+# Repositório Git
+git_repo = "https://github.com/gui-awk/hackaton-time-2.git"
+
+# Branch para deploy
+git_branch = "feat/database"
+
+# Senha do MySQL (use uma senha forte!)
+db_password = "SenhaSegura123!"

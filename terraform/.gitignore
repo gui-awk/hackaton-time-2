@@ -1,0 +1,28 @@
+# Terraform state files - CONTÉM DADOS SENSÍVEIS
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Terraform variables com valores reais - CONTÉM SECRETS
+terraform.tfvars
+*.auto.tfvars
+
+# Diretório de cache do Terraform - providers baixados
+.terraform/
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Arquivos de override (uso local)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# CLI configuration files
+.terraformrc
+terraform.rc
+
+# Arquivos de plano (podem conter secrets)
+*.tfplan

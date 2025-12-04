@@ -1,0 +1,32 @@
+# ===== TERRAFORM =====
+# State files - CONTÉM DADOS SENSÍVEIS (IPs, IDs, secrets)
+terraform/*.tfstate
+terraform/*.tfstate.*
+
+# Variables com valores reais - CONTÉM SECRETS
+terraform/terraform.tfvars
+terraform/*.auto.tfvars
+
+# Diretório de cache/providers
+terraform/.terraform/
+
+# Crash logs
+terraform/crash.log
+terraform/crash.*.log
+
+# Plan files
+terraform/*.tfplan
+
+# ===== CHAVES SSH =====
+*.pem
+*.key
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
