@@ -141,7 +141,7 @@ CREATE INDEX idx_historico_registro ON historico_status(tipo_registro, registro_
 
 -- Inserir cidadão de exemplo
 INSERT INTO cidadaos (nome, cpf, email, telefone, cep, endereco, numero, complemento, bairro, cidade, estado) VALUES
-('Maria da Silva', '123.456.789-00', 'maria.silva@email.com', '(11) 99999-8888', '12345-678', 'Rua das Flores', '123', 'Apto 45', 'Centro', 'São Paulo', 'SP'),
+('Guilherme Cavaco', '123.456.789-00', 'guihcavaco@gmail.com', '(11) 99920-5059', '89030-085', 'Rua Farmaceutico Reynaldo Pfau', '284', 'Apto 803', 'Itoupava Seca', 'Blumenau', 'SC'),
 ('João Santos', '987.654.321-00', 'joao.santos@email.com', '(11) 98888-7777', '12345-679', 'Av. Principal', '456', NULL, 'Jardim América', 'São Paulo', 'SP'),
 ('Ana Oliveira', '111.222.333-44', 'ana.oliveira@email.com', '(11) 97777-6666', '12345-680', 'Rua das Palmeiras', '789', 'Casa 2', 'Vila Nova', 'São Paulo', 'SP');
 
