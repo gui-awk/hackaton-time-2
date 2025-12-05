@@ -1,4 +1,27 @@
 services:
+  # Banco de Dados MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: central-cidadao-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-central_cidadao}
+      MYSQL_USER: ${DB_USER:-app_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-app_password}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - central-cidadao-network
+
   # Frontend Flutter Web
   frontend:
     build:
@@ -12,15 +35,30 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - central-cidadao-network
 
-  # Placeholder para Backend Java (futuro)
-  # backend-java:
-  #   build:
-  #     context: ./backend-java
-  #   ports:
-  #     - "8080:8080"
-  #   environment:
-  #     - SPRING_PROFILES_ACTIVE=docker
+  # Backend Java (Spring Boot)
+  backend-java:
+    build:
+      context: ./backend-java
+      dockerfile: Dockerfile
+    container_name: central-cidadao-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=${DB_NAME:-central_cidadao}
+      - DB_USER=${DB_USER:-app_user}
+      - DB_PASSWORD=${DB_PASSWORD:-app_password}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - central-cidadao-network
 
   # Placeholder para Backend C# (futuro)
   # backend-csharp:
@@ -28,3 +66,17 @@ services:
   #     context: ./backend-csharp
   #   ports:
   #     - "5000:80"
+  #   environment:
+  #     - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=central_cidadao;User=app_user;Password=app_password;
+  #   depends_on:
+  #     mysql:
+  #       condition: service_healthy
+  #   networks:
+  #     - central-cidadao-network
+
+volumes:
+  mysql_data:
+
+networks:
+  central-cidadao-network:
+    driver: bridge

@@ -289,19 +289,440 @@ Este projeto **deve utilizar** as três tecnologias abaixo. Copilot deve respeit
 
 ---
 
-## 7. Resumo para o Copilot
+## 8. Integração com Banco de Dados MySQL
+
+O projeto utilizará **MySQL** como banco de dados relacional para persistência de dados. Esta seção orienta a integração em cada uma das tecnologias do projeto.
+
+### 8.1 Estrutura do Banco de Dados
+
+#### Tabelas Principais
+
+```sql
+-- Tabela de Cidadãos (usuários do sistema)
+CREATE TABLE cidadaos (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(255) NOT NULL,
+    cpf VARCHAR(14) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    telefone VARCHAR(20),
+    cep VARCHAR(10),
+    endereco VARCHAR(255),
+    numero VARCHAR(20),
+    complemento VARCHAR(100),
+    bairro VARCHAR(100),
+    cidade VARCHAR(100),
+    estado VARCHAR(2),
+    data_cadastro DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data_atualizacao DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Tabela de Escolas
+CREATE TABLE escolas (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(255) NOT NULL,
+    endereco VARCHAR(255),
+    bairro VARCHAR(100),
+    cidade VARCHAR(100),
+    telefone VARCHAR(20),
+    nivel_ensino ENUM('INFANTIL', 'FUNDAMENTAL_I', 'FUNDAMENTAL_II', 'MEDIO') NOT NULL,
+    vagas_totais INT DEFAULT 0,
+    vagas_ocupadas INT DEFAULT 0,
+    ativo BOOLEAN DEFAULT TRUE
+);
+
+-- Tabela de Matrículas
+CREATE TABLE matriculas (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    protocolo VARCHAR(20) UNIQUE NOT NULL,
+    cidadao_id BIGINT NOT NULL,
+    escola_id BIGINT NOT NULL,
+    nome_aluno VARCHAR(255) NOT NULL,
+    data_nascimento DATE,
+    nivel_ensino ENUM('INFANTIL', 'FUNDAMENTAL_I', 'FUNDAMENTAL_II', 'MEDIO') NOT NULL,
+    serie VARCHAR(50),
+    status ENUM('PENDENTE', 'EM_ANALISE', 'APROVADA', 'REJEITADA', 'CANCELADA') DEFAULT 'PENDENTE',
+    observacoes TEXT,
+    data_solicitacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data_atualizacao DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (cidadao_id) REFERENCES cidadaos(id),
+    FOREIGN KEY (escola_id) REFERENCES escolas(id)
+);
+
+-- Tabela de Solicitações de Serviços Urbanos
+CREATE TABLE solicitacoes_servicos (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    protocolo VARCHAR(20) UNIQUE NOT NULL,
+    cidadao_id BIGINT NOT NULL,
+    tipo_servico ENUM('PODA', 'ILUMINACAO', 'OBRAS', 'LIMPEZA') NOT NULL,
+    descricao TEXT NOT NULL,
+    endereco VARCHAR(255) NOT NULL,
+    bairro VARCHAR(100),
+    ponto_referencia VARCHAR(255),
+    latitude DECIMAL(10, 8),
+    longitude DECIMAL(11, 8),
+    foto_url VARCHAR(500),
+    status ENUM('ABERTA', 'EM_ANALISE', 'EM_EXECUCAO', 'CONCLUIDA', 'CANCELADA') DEFAULT 'ABERTA',
+    prioridade ENUM('BAIXA', 'MEDIA', 'ALTA', 'URGENTE') DEFAULT 'MEDIA',
+    data_solicitacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data_atualizacao DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    data_conclusao DATETIME,
+    FOREIGN KEY (cidadao_id) REFERENCES cidadaos(id)
+);
+
+-- Tabela de Histórico de Status (Timeline)
+CREATE TABLE historico_status (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    tipo_registro ENUM('MATRICULA', 'SERVICO') NOT NULL,
+    registro_id BIGINT NOT NULL,
+    status_anterior VARCHAR(50),
+    status_novo VARCHAR(50) NOT NULL,
+    observacao TEXT,
+    usuario_responsavel VARCHAR(255),
+    data_alteracao DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela de Notificações
+CREATE TABLE notificacoes (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    cidadao_id BIGINT NOT NULL,
+    titulo VARCHAR(255) NOT NULL,
+    mensagem TEXT NOT NULL,
+    tipo ENUM('INFO', 'ALERTA', 'SUCESSO', 'ERRO') DEFAULT 'INFO',
+    lida BOOLEAN DEFAULT FALSE,
+    data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (cidadao_id) REFERENCES cidadaos(id)
+);
+
+-- Índices para otimização
+CREATE INDEX idx_matriculas_cidadao ON matriculas(cidadao_id);
+CREATE INDEX idx_matriculas_status ON matriculas(status);
+CREATE INDEX idx_solicitacoes_cidadao ON solicitacoes_servicos(cidadao_id);
+CREATE INDEX idx_solicitacoes_status ON solicitacoes_servicos(status);
+CREATE INDEX idx_solicitacoes_tipo ON solicitacoes_servicos(tipo_servico);
+CREATE INDEX idx_notificacoes_cidadao ON notificacoes(cidadao_id);
+CREATE INDEX idx_historico_registro ON historico_status(tipo_registro, registro_id);
+```
+
+### 8.2 Configuração no Java (Spring Boot)
+
+#### Dependências (pom.xml)
+
+```xml
+<dependencies>
+    <!-- Spring Data JPA -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    
+    <!-- MySQL Connector -->
+    <dependency>
+        <groupId>com.mysql</groupId>
+        <artifactId>mysql-connector-j</artifactId>
+        <scope>runtime</scope>
+    </dependency>
+    
+    <!-- Flyway para migrations (opcional, recomendado) -->
+    <dependency>
+        <groupId>org.flywaydb</groupId>
+        <artifactId>flyway-core</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.flywaydb</groupId>
+        <artifactId>flyway-mysql</artifactId>
+    </dependency>
+</dependencies>
+```
+
+#### application.properties / application.yml
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:central_cidadao}?useSSL=false&serverTimezone=America/Sao_Paulo&allowPublicKeyRetrieval=true
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Use 'create' apenas em dev inicial, depois 'validate'
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+  
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+```
+
+#### Exemplo de Entity
+
+```java
+@Entity
+@Table(name = "cidadaos")
+public class Cidadao {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(nullable = false)
+    private String nome;
+    
+    @Column(unique = true, nullable = false, length = 14)
+    private String cpf;
+    
+    @Column(unique = true, nullable = false)
+    private String email;
+    
+    private String telefone;
+    private String cep;
+    private String endereco;
+    private String numero;
+    private String complemento;
+    private String bairro;
+    private String cidade;
+    private String estado;
+    
+    @Column(name = "data_cadastro")
+    private LocalDateTime dataCadastro;
+    
+    @Column(name = "data_atualizacao")
+    private LocalDateTime dataAtualizacao;
+    
+    // Getters, Setters, Constructors
+}
+```
+
+#### Exemplo de Repository
+
+```java
+@Repository
+public interface CidadaoRepository extends JpaRepository<Cidadao, Long> {
+    Optional<Cidadao> findByCpf(String cpf);
+    Optional<Cidadao> findByEmail(String email);
+}
+
+@Repository
+public interface MatriculaRepository extends JpaRepository<Matricula, Long> {
+    List<Matricula> findByCidadaoId(Long cidadaoId);
+    Optional<Matricula> findByProtocolo(String protocolo);
+    List<Matricula> findByCidadaoIdAndStatus(Long cidadaoId, StatusMatricula status);
+}
+
+@Repository
+public interface SolicitacaoServicoRepository extends JpaRepository<SolicitacaoServico, Long> {
+    List<SolicitacaoServico> findByCidadaoId(Long cidadaoId);
+    Optional<SolicitacaoServico> findByProtocolo(String protocolo);
+    List<SolicitacaoServico> findByTipoServico(TipoServico tipo);
+    List<SolicitacaoServico> findByStatus(StatusSolicitacao status);
+}
+```
+
+### 8.3 Configuração no C# (ASP.NET Core)
+
+#### Dependências (NuGet)
+
+```xml
+<PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
+<PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.0" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.0" />
+```
+
+#### appsettings.json
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Port=3306;Database=central_cidadao;User=root;Password=root;"
+  }
+}
+```
+
+#### DbContext
+
+```csharp
+public class CentralCidadaoContext : DbContext
+{
+    public CentralCidadaoContext(DbContextOptions<CentralCidadaoContext> options) 
+        : base(options) { }
+    
+    public DbSet<Cidadao> Cidadaos { get; set; }
+    public DbSet<Escola> Escolas { get; set; }
+    public DbSet<Matricula> Matriculas { get; set; }
+    public DbSet<SolicitacaoServico> SolicitacoesServicos { get; set; }
+    public DbSet<Notificacao> Notificacoes { get; set; }
+    public DbSet<HistoricoStatus> HistoricoStatus { get; set; }
+    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Cidadao>().ToTable("cidadaos");
+        modelBuilder.Entity<Escola>().ToTable("escolas");
+        modelBuilder.Entity<Matricula>().ToTable("matriculas");
+        modelBuilder.Entity<SolicitacaoServico>().ToTable("solicitacoes_servicos");
+        modelBuilder.Entity<Notificacao>().ToTable("notificacoes");
+        modelBuilder.Entity<HistoricoStatus>().ToTable("historico_status");
+    }
+}
+```
+
+#### Program.cs
+
+```csharp
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<CentralCidadaoContext>(options =>
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+```
+
+### 8.4 Configuração no Flutter
+
+O Flutter **não deve acessar o MySQL diretamente**. A comunicação deve ser feita via APIs REST (Java/C#).
+
+#### Exemplo de Service para consumir API
+
+```dart
+class ApiService {
+  static const String baseUrl = 'http://localhost:8080/api';
+  
+  // Buscar perfil do cidadão
+  Future<CitizenProfile> fetchProfile(String cidadaoId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/cidadaos/$cidadaoId'),
+      headers: {'Content-Type': 'application/json'},
+    );
+    
+    if (response.statusCode == 200) {
+      return CitizenProfile.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('Falha ao carregar perfil');
+    }
+  }
+  
+  // Atualizar perfil
+  Future<void> updateProfile(CitizenProfile profile) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/cidadaos/${profile.id}'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(profile.toJson()),
+    );
+    
+    if (response.statusCode != 200) {
+      throw Exception('Falha ao atualizar perfil');
+    }
+  }
+  
+  // Listar matrículas do cidadão
+  Future<List<Enrollment>> fetchEnrollments(String cidadaoId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/matriculas?cidadaoId=$cidadaoId'),
+    );
+    
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) => Enrollment.fromJson(json)).toList();
+    } else {
+      throw Exception('Falha ao carregar matrículas');
+    }
+  }
+}
+```
+
+### 8.5 Docker Compose com MySQL
+
+Adicionar o serviço MySQL ao `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: central-cidadao-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: central_cidadao
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: app_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - central-cidadao-network
+
+  backend-java:
+    build: ./backend-java
+    container_name: central-cidadao-backend
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: central_cidadao
+      DB_USER: app_user
+      DB_PASSWORD: app_password
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - central-cidadao-network
+
+  frontend:
+    build: ./frontend_flutter
+    container_name: central-cidadao-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend-java
+    networks:
+      - central-cidadao-network
+
+volumes:
+  mysql_data:
+
+networks:
+  central-cidadao-network:
+    driver: bridge
+```
+
+### 8.6 Boas Práticas para Integração com MySQL
+
+1. **Nunca commitar credenciais** - Use variáveis de ambiente ou arquivos `.env`
+2. **Use migrations** - Flyway (Java) ou EF Migrations (C#) para versionamento do schema
+3. **Índices** - Criar índices para colunas frequentemente filtradas (status, cidadao_id, protocolo)
+4. **Connection Pooling** - Configurar pool de conexões adequado (HikariCP no Java)
+5. **Tratamento de erros** - Capturar exceções de banco e retornar mensagens amigáveis ao usuário
+6. **Validação** - Validar dados antes de persistir (CPF, email, campos obrigatórios)
+7. **Soft Delete** - Considerar usar campo `ativo` em vez de deletar registros fisicamente
+8. **Auditoria** - Manter campos `data_cadastro` e `data_atualizacao` em todas as tabelas
+
+---
+
+## 9. Resumo para o Copilot
 
 - Este projeto é um **MVP de Central do Cidadão** para uma hackaton.
 - É **obrigatório** utilizar:
   - Java (backend principal),
   - Flutter (front-end do cidadão),
-  - C# (serviços complementares/integrações).
+  - C# (serviços complementares/integrações),
+  - **MySQL** (banco de dados relacional).
 - Priorize:
   - **Experiência do cidadão** acima de detalhes técnicos supérfluos;
   - **Centralização de fluxos** (matrícula, vagas, serviços urbanos, histórico);
   - **Código limpo e modular**, separado por tecnologia.
 
 - Use **dados simulados/mocks** quando não houver integração real.
-- Documente sempre que algo for “simulado” para facilitar a substituição futura.
+- Documente sempre que algo for "simulado" para facilitar a substituição futura.
+
+- Siga boas práticas de cada tecnologia, respeitando a organização sugerida.
+- Para integração com **MySQL**, siga as orientações da **Seção 8**.
 
 - Siga boas práticas de cada tecnologia, respeitando a organização sugerida.
